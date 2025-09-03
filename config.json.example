@@ -2,11 +2,16 @@
     "psacc_server": "http://xx.xx.xx.xx:xxxx",
     "VIN": "",
     "domoticz_server": "http://xx.xx.xx.xx:xxxx",
+    "domoticz_login": "",
+    "domoticz_password": ",
     "domoticz_idx_odometer": "",
+    "domoticz_idx_electric_odometer": "",
+    "domoticz_idx_hybrid_odometer": "",
     "domoticz_idx_battery": "",
     "domoticz_idx_battery_autonomy": "",
     "domoticz_idx_fuel": "",
     "domoticz_idx_fuel_autonomy": "",
-    "domoticz_login": "",
-    "domoticz_password": ""
+    "domoticz_idx_air_temperature": "",
+    "domoticz_idx_update_date": "",
+    "domoticz_idx_charging_status": "",
 }
