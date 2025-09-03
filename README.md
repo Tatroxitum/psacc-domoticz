@@ -1,11 +1,9 @@
 # psacc-domoticz
 
-First release.
-
-Special thanks to flobz (https://github.com/flobz/psa_car_controller) for is excellent work in integration of API of Stellantis vehicles
+Special thanks to [flobz](https://github.com/flobz) for is excellent work in integration of API of Stellantis vehicles (https://github.com/flobz/psa_car_controller) 
 
 This python scripts gets data from the psa_car_controller developped by flobz and update in domoticz the corresponding devices.
-All the domoticz devices are virtual devices that you have to create manually
+All the domoticz devices are virtual devices that you have to create manually.
 
 Installation : 
 
