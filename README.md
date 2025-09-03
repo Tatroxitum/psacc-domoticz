@@ -57,6 +57,7 @@ Domoticz 2024.4
 Domoticz 2025.1 
 
 Once the devices are created in domoticz, you can add a floorplan to have a dedicated overview
-For an example :
+
+For example :
 ![Image](https://github.com/user-attachments/assets/add5f8cb-dbf0-4bbe-878e-a0e931211853)
 
