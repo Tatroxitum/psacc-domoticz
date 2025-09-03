@@ -24,11 +24,11 @@ Installation of psacc-domoticz :
 	
 	For all these parameters, leave as it is if not used. Otherwise, put the idx of the virtual sensor in domoticz you have created
 	For each, please create a virtual sensor with the corresponding parameters :
-    "domoticz_idx_odometer": Odometer of the vehicle : 
+    "domoticz_idx_odometer": Odometer of the vehicle :
 							"Counter", once created set it to "custom" to have the "km" axis
-    "domoticz_idx_electric_odometer": Odometer of the vehicle when only electric mode is used in a trip (from the time you have installed the psacc server) 
+    "domoticz_idx_electric_odometer": Odometer of the vehicle when only electric mode is used in a trip (from the time you have installed the psacc server)
 							"Counter", once created set it to "custom" to have the "km" axis
-    "domoticz_idx_hybrid_odometer": Odometer of the vehicle when hybrid mode is used in a trip (from the time you have installed the psacc server) 
+    "domoticz_idx_hybrid_odometer": Odometer of the vehicle when hybrid mode is used in a trip (from the time you have installed the psacc server)
 							"Counter", once created set it to "custom" to have the "km" axis
     "domoticz_idx_battery": Current battery percentage of the vehicle
 							"Percentage"
@@ -36,7 +36,7 @@ Installation of psacc-domoticz :
 							"custom sensor", axis label : "km"
     "domoticz_idx_fuel": Current fuel percentage of the vehicle
 							"Percentage"
-    "domoticz_idx_fuel_autonomy": Current fuel autonomy of the vehicle 
+    "domoticz_idx_fuel_autonomy": Current fuel autonomy of the vehicle
 							"Custom sensor", axis label : "km"
     "domoticz_idx_air_temperature": Current air temperature from the vehicle
 							"Temperature"
