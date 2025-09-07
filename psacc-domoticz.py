@@ -19,7 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
-VERSION = "v0.1.0"
+VERSION = "v0.1.1"
 ################################################################################
 # SCRIPT DEPENDENCIES
 ################################################################################
@@ -35,7 +35,7 @@ try:
     import requests
     import sys
     import time
-    from datetime import datetime, timezone
+    from datetime import datetime, timezone, timedelta
     from logging.handlers import RotatingFileHandler
     from urllib.parse import urlencode
     import urllib3
@@ -194,10 +194,12 @@ class PSACCCrawler:
         try:
             self._load_configuration_items(config_dict)
             self.print("End loading psacc-domoticz configuration", end="")
+            self.print(st="ok")
         except Exception:
             raise
         else:
-            self.print(st="ok")
+            if self.__debug:
+                self.print(st="ok")
 
 
     # Load configuration items
@@ -205,18 +207,19 @@ class PSACCCrawler:
         for param in list((self.configuration).keys()):
             if param not in config_dict:
                 if self.configuration[param] is not None:
-                    self.print(
-                        '    "'
-                        + param
-                        + '" = "'
-                        + str(self.configuration[param])
-                        + '"',
-                        end="",
-                    )
-                    self.print(
-                        "param is not found in config file, using default value",
-                        "WW",
-                    )
+                    if self.__debug:
+                        self.print(
+                            '    "'
+                            + param
+                            + '" = "'
+                            + str(self.configuration[param])
+                            + '"',
+                            end="",
+                        )
+                        self.print(
+                            "param is not found in config file, using default value",
+                            "WW",
+                        )
                 else:
                     self.print('    "' + param + '"', end="")
                     raise RuntimeError(
@@ -224,11 +227,14 @@ class PSACCCrawler:
                     )
             else:
                 self.configuration[param] = config_dict[param]
-                self.print(st="OK")
+                if self.__debug:
+                    self.print(st="OK")
 
 
     def get_vehicleinfo(self, fromcache=True):
-        self.print("get vehicle info data from psacc", end="")
+        if self.__debug:
+            self.print("get vehicle info data from psacc", end="")
+            self.print(st="")
         ###### get json file from psacc server #####
         myurl=self.configuration["psacc_server"]+"/get_vehicleinfo/"+self.configuration["VIN"]
         if fromcache==True:
@@ -241,8 +247,9 @@ class PSACCCrawler:
 
         if req.status_code==200 : # Réponse HTTP 200 : OK
             self.vehicleinfo = req.json()
-            self.print("json : " + str(self.vehicleinfo), end="")
-            self.print(st="ok")
+            if self.__debug:
+                self.print("json : " + str(self.vehicleinfo), end="")
+                self.print(st="ok")
             return self.vehicleinfo
             
         else:
@@ -252,8 +259,9 @@ class PSACCCrawler:
       
 
     def get_vehicletrips(self):
-        self.print("get vehicle trips data from psacc", end="")
-        
+        if self.__debug:
+            self.print("get vehicle trips data from psacc", end="")
+            self.print(st="")
         myurl = self.configuration["psacc_server"]+"/vehicles/trips"
         req = requests.get(myurl) 
         if self.__debug:
@@ -261,8 +269,9 @@ class PSACCCrawler:
 
         if req.status_code==200 : # Réponse HTTP 200 : OK
             self.vehicletrips = req.json()
-            self.print("json : " + str(req.json()), end="")
-            self.print(st="ok")
+            if self.__debug:
+                self.print("json : " + str(req.json()), end="")
+                self.print(st="ok")
             return self.vehicletrips
             
         else:
@@ -280,13 +289,14 @@ class PSACCCrawler:
             print(u'  '.join((u'GET-> ',myurl,' : ',str(req.status_code))).encode('utf-8'))
 
         if req.status_code==200 : # Réponse HTTP 200 : OK
-            self.print("json : " + str(req.json()), end="")
-            self.print(st="")
-            return True
-            
-        else:
-            self.print(st="EE")
-        
+            if self.__debug:
+                self.print("json : " + str(req.json()), end="")
+                self.print(st="")
+            if req.json()==True:
+                return True
+                
+
+        self.print(st="EE")
         return False
 
 
@@ -326,10 +336,12 @@ class DomoticzInjector:
         try:
             self._load_configuration_items(config_dict)
             self.print("End loading domoticz configuration", end="")
+            self.print(st="ok")
         except Exception:
             raise
         else:
-            self.print(st="ok")
+            if self.__debug:
+                self.print(st="ok")
 
         self.__http = urllib3.PoolManager(
             retries=1, timeout=int(str(self.configuration["timeout"]))
@@ -395,17 +407,18 @@ class DomoticzInjector:
         for param in list((self.configuration).keys()):
             if param not in config_dict:
                 if self.configuration[param] is not None:
-                    self.print(
-                        '    "%s" = "%s"' % (
-                            param,
-                            self.configuration[param],
-                        ),
-                        end="",
-                    )
-                    self.print(
-                        "param is not found in config file, using default value",
-                        "WW",
-                    )
+                    if self.__debug:
+                        self.print(
+                            '    "%s" = "%s"' % (
+                                param,
+                                self.configuration[param],
+                            ),
+                            end="",
+                        )
+                        self.print(
+                            "param is not found in config file, using default value",
+                            "WW",
+                        )
                 else:
                     self.print('    "' + param + '"', end="")
                     raise RuntimeError(
@@ -423,25 +436,28 @@ class DomoticzInjector:
                     self.configuration[param] = config_dict[param]
 
                 if re.match(r".*(token|password).*", param, re.IGNORECASE):
-                    self.print(
-                        '    "'
-                        + param
-                        + '" = "'
-                        + "*" * len(str(self.configuration[param]))
-                        + '"',
-                        end="",
-                    )
+                    if self.__debug:
+                            self.print(
+                            '    "'
+                            + param
+                            + '" = "'
+                            + "*" * len(str(self.configuration[param]))
+                            + '"',
+                            end="",
+                        )
                 else:
-                    self.print(
-                        '    "'
-                        + param
-                        + '" = "'
-                        + str(self.configuration[param])
-                        + '"',
-                        end="",
-                    )
+                    if self.__debug:
+                            self.print(
+                            '    "'
+                            + param
+                            + '" = "'
+                            + str(self.configuration[param])
+                            + '"',
+                            end="",
+                        )
 
-                self.print(st="OK")
+                if self.__debug:
+                    self.print(st="OK")
 
     def sanity_check(self, debug=False):  
         self.print(
@@ -451,9 +467,10 @@ class DomoticzInjector:
         if response["status"].lower() == "ok":
             self.print(st="ok")
 
-        self.print(
-            "Check domoticz Device", end=""
-        )  
+        if self.__debug:
+            self.print(
+                "Check domoticz Devices", end=""
+            )  
         
         #if odometer defined
         if self.configuration["domoticz_idx_odometer"]:
@@ -477,25 +494,29 @@ class DomoticzInjector:
                 dev_SwitchTypeVal = response["result"][0]["SwitchTypeVal"]
                 dev_Name = response["result"][0]["Name"]
 
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(st="ok")
 
                 # Retrieve Device Name
-                self.print(
-                    '    Device Name            : "'
-                    + dev_Name
-                    + '" (idx='
-                    + self.configuration["domoticz_idx_odometer"]
-                    + ")",
-                    end="",
-                )  
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(
+                        '    Device Name            : "'
+                        + dev_Name
+                        + '" (idx='
+                        + self.configuration["domoticz_idx_odometer"]
+                        + ")",
+                        end="",
+                    )  
+                    self.print(st="ok")
 
                 # Checking Device Type
-                self.print(
-                    '    Device Type            : "' + dev_Type + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Type            : "' + dev_Type + '"', end=""
+                    )  
                 if dev_Type == "RFXMeter":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Counter"',
@@ -504,11 +525,13 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking device subtype
-                self.print(
-                    '    Device SubType         : "' + dev_SubType + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device SubType         : "' + dev_SubType + '"', end=""
+                    )  
                 if dev_SubType == "RFXMeter counter":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Counter"',
@@ -517,12 +540,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking for SwitchType
-                self.print(
-                    '    Device SwitchType      : "' + str(dev_SwitchTypeVal),
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device SwitchType      : "' + str(dev_SwitchTypeVal),
+                        end="",
+                    )  
                 if dev_SwitchTypeVal == 3:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         "wrong switch type. Go to Domoticz - Select your counter - click edit - change type to custom",
@@ -531,12 +556,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking for Counter Divider
-                self.print(
-                    '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
+                        end="",
+                    )  
                 if dev_AddjValue2 == 0:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong counter divided. Go to Domoticz - Select your counter - click edit - set "Counter Divided" to 0',
@@ -545,12 +572,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking Meter Offset
-                self.print(
-                    '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
+                        end="",
+                    )  
                 if dev_AddjValue == 0:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong value for meter offset. Go to Domoticz - Select your counter - click edit - set "Meter Offset" to 0',
@@ -585,25 +614,29 @@ class DomoticzInjector:
                 dev_SwitchTypeVal = response["result"][0]["SwitchTypeVal"]
                 dev_Name = response["result"][0]["Name"]
 
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(st="ok")
 
                 # Retrieve Device Name
-                self.print(
-                    '    Device Name            : "'
-                    + dev_Name
-                    + '" (idx='
-                    + self.configuration["domoticz_idx_electric_odometer"]
-                    + ")",
-                    end="",
-                )  
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(
+                        '    Device Name            : "'
+                        + dev_Name
+                        + '" (idx='
+                        + self.configuration["domoticz_idx_electric_odometer"]
+                        + ")",
+                        end="",
+                    )  
+                    self.print(st="ok")
 
                 # Checking Device Type
-                self.print(
-                    '    Device Type            : "' + dev_Type + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Type            : "' + dev_Type + '"', end=""
+                    )  
                 if dev_Type == "RFXMeter":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Counter"',
@@ -612,11 +645,13 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking device subtype
-                self.print(
-                    '    Device SubType         : "' + dev_SubType + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device SubType         : "' + dev_SubType + '"', end=""
+                    )  
                 if dev_SubType == "RFXMeter counter":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Counter"',
@@ -625,12 +660,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking for SwitchType
-                self.print(
-                    '    Device SwitchType      : "' + str(dev_SwitchTypeVal),
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device SwitchType      : "' + str(dev_SwitchTypeVal),
+                        end="",
+                    )  
                 if dev_SwitchTypeVal == 3:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         "wrong switch type. Go to Domoticz - Select your counter - click edit - change type to custom",
@@ -639,12 +676,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking for Counter Divider
-                self.print(
-                    '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
+                        end="",
+                    )  
                 if dev_AddjValue2 == 0:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong counter divided. Go to Domoticz - Select your counter - click edit - set "Counter Divided" to 0',
@@ -653,12 +692,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking Meter Offset
-                self.print(
-                    '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
+                        end="",
+                    )  
                 if dev_AddjValue == 0:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong value for meter offset. Go to Domoticz - Select your counter - click edit - set "Meter Offset" to 0',
@@ -693,25 +734,29 @@ class DomoticzInjector:
                 dev_SwitchTypeVal = response["result"][0]["SwitchTypeVal"]
                 dev_Name = response["result"][0]["Name"]
 
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(st="ok")
 
                 # Retrieve Device Name
-                self.print(
-                    '    Device Name            : "'
-                    + dev_Name
-                    + '" (idx='
-                    + self.configuration["domoticz_idx_hybrid_odometer"]
-                    + ")",
-                    end="",
-                )  
-                self.print(st="ok")
+                if self.__debug:
+                        self.print(
+                            '    Device Name            : "'
+                            + dev_Name
+                            + '" (idx='
+                            + self.configuration["domoticz_idx_hybrid_odometer"]
+                            + ")",
+                            end="",
+                        )  
+                        self.print(st="ok")
 
                 # Checking Device Type
-                self.print(
-                    '    Device Type            : "' + dev_Type + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Type            : "' + dev_Type + '"', end=""
+                    )  
                 if dev_Type == "RFXMeter":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Counter"',
@@ -720,11 +765,13 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking device subtype
-                self.print(
-                    '    Device SubType         : "' + dev_SubType + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device SubType         : "' + dev_SubType + '"', end=""
+                    )  
                 if dev_SubType == "RFXMeter counter":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Counter"',
@@ -733,12 +780,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking for SwitchType
-                self.print(
-                    '    Device SwitchType      : "' + str(dev_SwitchTypeVal),
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device SwitchType      : "' + str(dev_SwitchTypeVal),
+                        end="",
+                    )  
                 if dev_SwitchTypeVal == 3:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         "wrong switch type. Go to Domoticz - Select your counter - click edit - change type to custom",
@@ -747,12 +796,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking for Counter Divider
-                self.print(
-                    '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
+                        end="",
+                    )  
                 if dev_AddjValue2 == 0:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong counter divided. Go to Domoticz - Select your counter - click edit - set "Counter Divided" to 0',
@@ -761,12 +812,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking Meter Offset
-                self.print(
-                    '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
+                        end="",
+                    )  
                 if dev_AddjValue == 0:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong value for meter offset. Go to Domoticz - Select your counter - click edit - set "Meter Offset" to 0',
@@ -791,25 +844,31 @@ class DomoticzInjector:
                 dev_SubType = response["result"][0]["SubType"]
                 dev_Type = response["result"][0]["Type"]
                 dev_Name = response["result"][0]["Name"]
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(st="ok")
 
                 # Retrieve Device Name
-                self.print('    Device Name            : "'+ dev_Name+ '" (idx='+ self.configuration["domoticz_idx_battery"]+ ")",end="",)  
-                self.print(st="ok")
+                if self.__debug:
+                    self.print('    Device Name            : "'+ dev_Name+ '" (idx='+ self.configuration["domoticz_idx_battery"]+ ")",end="",)  
+                    self.print(st="ok")
 
                 # Checking Device Type
-                self.print('    Device Type            : "' + dev_Type + '"', end="")  
+                if self.__debug:
+                    self.print('    Device Type            : "' + dev_Type + '"', end="")  
                 if dev_Type == "General":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print('wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Percentage"',
                         st="EE",)
                     properly_configured = False
 
                 # Checking device subtype
-                self.print('    Device SubType         : "' + dev_SubType + '"', end="")  
+                if self.__debug:
+                    self.print('    Device SubType         : "' + dev_SubType + '"', end="")  
                 if dev_SubType == "Percentage":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print('wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Percentage"',
                         st="ee",)
@@ -830,25 +889,31 @@ class DomoticzInjector:
                 dev_SubType = response["result"][0]["SubType"]
                 dev_Type = response["result"][0]["Type"]
                 dev_Name = response["result"][0]["Name"]
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(st="ok")
 
                 # Retrieve Device Name
-                self.print('    Device Name            : "'+ dev_Name+ '" (idx='+ self.configuration["domoticz_idx_battery_autonomy"]+ ")",end="",)  
-                self.print(st="ok")
+                if self.__debug:
+                    self.print('    Device Name            : "'+ dev_Name+ '" (idx='+ self.configuration["domoticz_idx_battery_autonomy"]+ ")",end="",)  
+                    self.print(st="ok")
 
                 # Checking Device Type
-                self.print('    Device Type            : "' + dev_Type + '"', end="")  
+                if self.__debug:
+                    self.print('    Device Type            : "' + dev_Type + '"', end="")  
                 if dev_Type == "General":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print('wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Custom Sensor"',
                         st="EE",)
                     properly_configured = False
 
                 # Checking device subtype
-                self.print('    Device SubType         : "' + dev_SubType + '"', end="")  
+                if self.__debug:
+                    self.print('    Device SubType         : "' + dev_SubType + '"', end="")  
                 if dev_SubType == "Custom Sensor":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print('wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Custom Sensor"',
                         st="ee",)
@@ -869,25 +934,31 @@ class DomoticzInjector:
                 dev_SubType = response["result"][0]["SubType"]
                 dev_Type = response["result"][0]["Type"]
                 dev_Name = response["result"][0]["Name"]
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(st="ok")
 
                 # Retrieve Device Name
-                self.print('    Device Name            : "'+ dev_Name+ '" (idx='+ self.configuration["domoticz_idx_fuel"]+ ")",end="",)  
-                self.print(st="ok")
+                if self.__debug:
+                    self.print('    Device Name            : "'+ dev_Name+ '" (idx='+ self.configuration["domoticz_idx_fuel"]+ ")",end="",)  
+                    self.print(st="ok")
 
                 # Checking Device Type
-                self.print('    Device Type            : "' + dev_Type + '"', end="")  
+                if self.__debug:
+                    self.print('    Device Type            : "' + dev_Type + '"', end="")  
                 if dev_Type == "General":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print('wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Percentage"',
                         st="EE",)
                     properly_configured = False
 
                 # Checking device subtype
-                self.print('    Device SubType         : "' + dev_SubType + '"', end="")  
+                if self.__debug:
+                    self.print('    Device SubType         : "' + dev_SubType + '"', end="")  
                 if dev_SubType == "Percentage":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print('wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Percentage"',
                         st="ee",)
@@ -908,25 +979,31 @@ class DomoticzInjector:
                 dev_SubType = response["result"][0]["SubType"]
                 dev_Type = response["result"][0]["Type"]
                 dev_Name = response["result"][0]["Name"]
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(st="ok")
 
                 # Retrieve Device Name
-                self.print('    Device Name            : "'+ dev_Name+ '" (idx='+ self.configuration["domoticz_idx_fuel_autonomy"]+ ")",end="",)  
-                self.print(st="ok")
+                if self.__debug:
+                    self.print('    Device Name            : "'+ dev_Name+ '" (idx='+ self.configuration["domoticz_idx_fuel_autonomy"]+ ")",end="",)  
+                    self.print(st="ok")
 
                 # Checking Device Type
-                self.print('    Device Type            : "' + dev_Type + '"', end="")  
+                if self.__debug:
+                    self.print('    Device Type            : "' + dev_Type + '"', end="")  
                 if dev_Type == "General":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print('wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Custom Sensor"',
                         st="EE",)
                     properly_configured = False
 
                 # Checking device subtype
-                self.print('    Device SubType         : "' + dev_SubType + '"', end="")  
+                if self.__debug:
+                    self.print('    Device SubType         : "' + dev_SubType + '"', end="")  
                 if dev_SubType == "Custom Sensor":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print('wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Custom Sensor"',
                         st="ee",)
@@ -956,25 +1033,29 @@ class DomoticzInjector:
                 dev_Type = response["result"][0]["Type"]
                 dev_Name = response["result"][0]["Name"]
 
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(st="ok")
 
                 # Retrieve Device Name
-                self.print(
-                    '    Device Name            : "'
-                    + dev_Name
-                    + '" (idx='
-                    + self.configuration["domoticz_idx_air_temperature"]
-                    + ")",
-                    end="",
-                )  
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(
+                        '    Device Name            : "'
+                        + dev_Name
+                        + '" (idx='
+                        + self.configuration["domoticz_idx_air_temperature"]
+                        + ")",
+                        end="",
+                    )  
+                    self.print(st="ok")
 
                 # Checking Device Type
-                self.print(
-                    '    Device Type            : "' + dev_Type + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Type            : "' + dev_Type + '"', end=""
+                    )  
                 if dev_Type == "Temp":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Temperature"',
@@ -983,11 +1064,13 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking device subtype
-                self.print(
-                    '    Device SubType         : "' + dev_SubType + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device SubType         : "' + dev_SubType + '"', end=""
+                    )  
                 if dev_SubType == "LaCrosse TX3":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Temperature"',
@@ -996,12 +1079,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking for Counter Divider
-                self.print(
-                    '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
+                        end="",
+                    )  
                 if dev_AddjValue2 == 0:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong counter divided. Go to Domoticz - Select your counter - click edit - set "Counter Divided" to 0',
@@ -1010,12 +1095,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking Meter Offset
-                self.print(
-                    '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
+                        end="",
+                    )  
                 if dev_AddjValue == 0:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong value for meter offset. Go to Domoticz - Select your counter - click edit - set "Meter Offset" to 0',
@@ -1049,25 +1136,29 @@ class DomoticzInjector:
                 dev_Type = response["result"][0]["Type"]
                 dev_Name = response["result"][0]["Name"]
 
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(st="ok")
 
                 # Retrieve Device Name
-                self.print(
-                    '    Device Name            : "'
-                    + dev_Name
-                    + '" (idx='
-                    + self.configuration["domoticz_idx_update_date"]
-                    + ")",
-                    end="",
-                )  
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(
+                        '    Device Name            : "'
+                        + dev_Name
+                        + '" (idx='
+                        + self.configuration["domoticz_idx_update_date"]
+                        + ")",
+                        end="",
+                    )  
+                    self.print(st="ok")
 
                 # Checking Device Type
-                self.print(
-                    '    Device Type            : "' + dev_Type + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Type            : "' + dev_Type + '"', end=""
+                    )  
                 if dev_Type == "General":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Text"',
@@ -1076,11 +1167,13 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking device subtype
-                self.print(
-                    '    Device SubType         : "' + dev_SubType + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device SubType         : "' + dev_SubType + '"', end=""
+                    )  
                 if dev_SubType == "Text":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Text"',
@@ -1089,12 +1182,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking for Counter Divider
-                self.print(
-                    '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
+                        end="",
+                    )  
                 if dev_AddjValue2 == 0:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong counter divided. Go to Domoticz - Select your counter - click edit - set "Counter Divided" to 0',
@@ -1103,12 +1198,14 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking Meter Offset
-                self.print(
-                    '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
-                    end="",
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
+                        end="",
+                    )  
                 if dev_AddjValue == 0:
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong value for meter offset. Go to Domoticz - Select your counter - click edit - set "Meter Offset" to 0',
@@ -1140,25 +1237,29 @@ class DomoticzInjector:
                 dev_Type = response["result"][0]["Type"]
                 dev_Name = response["result"][0]["Name"]
 
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(st="ok")
 
                 # Retrieve Device Name
-                self.print(
-                    '    Device Name            : "'
-                    + dev_Name
-                    + '" (idx='
-                    + self.configuration["domoticz_idx_charging_status"]
-                    + ")",
-                    end="",
-                )  
-                self.print(st="ok")
+                if self.__debug:
+                    self.print(
+                        '    Device Name            : "'
+                        + dev_Name
+                        + '" (idx='
+                        + self.configuration["domoticz_idx_charging_status"]
+                        + ")",
+                        end="",
+                    )  
+                    self.print(st="ok")
 
                 # Checking Device Type
-                self.print(
-                    '    Device Type            : "' + dev_Type + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device Type            : "' + dev_Type + '"', end=""
+                    )  
                 if dev_Type == "Lighting 1":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual subtype on/off X10',
@@ -1167,11 +1268,13 @@ class DomoticzInjector:
                     properly_configured = False
 
                 # Checking device subtype
-                self.print(
-                    '    Device SubType         : "' + dev_SubType + '"', end=""
-                )  
+                if self.__debug:
+                    self.print(
+                        '    Device SubType         : "' + dev_SubType + '"', end=""
+                    )  
                 if dev_SubType == "X10":
-                    self.print(st="ok")
+                    if self.__debug:
+                        self.print(st="ok")
                 else:
                     self.print(
                         'wrong sensor type. Go to Domoticz/Hardware - Create a virtual switch subtype on/off X10',
@@ -1333,16 +1436,24 @@ class DomoticzInjector:
                         else:
                             self.print("update domoticz device charging status : "+str(current_charging_status),st="EE")
         
-        #Update "update date" if defined
-        if self.configuration["domoticz_idx_update_date"]:
+        #Udpate date and verification of force update if charging
+        if self.__debug:
             self.print("update domoticz device Odometer update date "+str(odometer_update_date),st="ok")
             self.print("update domoticz device Fuel update date "+str(energy_fuel_update_date),st="ok")
             self.print("update domoticz device Battery update date "+str(energy_battery_update_date),st="ok")
-            most_recent_update_date = energy_battery_update_date
-            if energy_fuel_update_date > energy_battery_update_date:
-                most_recent_update_date = energy_fuel_update_date
-            if most_recent_update_date < odometer_update_date: 
-                most_recent_update_date = odometer_update_date
+        most_recent_update_date = energy_battery_update_date
+        if energy_fuel_update_date > energy_battery_update_date:
+            most_recent_update_date = energy_fuel_update_date
+        if most_recent_update_date < odometer_update_date: 
+            most_recent_update_date = odometer_update_date
+        
+        if self.force_update:
+            #verification of the last update date to be sure
+            if (most_recent_update_date+timedelta(minutes=10)) > datetime.now(most_recent_update_date.now().astimezone().tzinfo):
+                self.force_update = False
+            
+        #Update "update date" if defined
+        if self.configuration["domoticz_idx_update_date"]:
             # Generate URL
             url_args = {
                 "type": "command",
@@ -1381,7 +1492,7 @@ class DomoticzInjector:
                 else:
                     self.print("update domoticz device air temperature "+str(temperature)+" °C",st="EE")
 
-        #Update electric only odometer
+        #Update electric only odometer and hybrid/fuel odomoter
         if ((self.configuration["domoticz_idx_electric_odometer"] or self.configuration["domoticz_idx_hybrid_odometer"]) and 
         vehicletrips_jsonf_file
         ):
@@ -1396,14 +1507,15 @@ class DomoticzInjector:
                 date_string=datetime.strptime(json_inner_array["start_at"], '%a, %d %b %Y %H:%M:%S %Z')
                 update_dateLocal=date_string.astimezone(datetime.now().astimezone().tzinfo) #apply local timezone
                 
-                total_hybrid_distance = total_hybrid_distance + consumption_fuel_km
                 
                 if(consumption_fuel_km==0):
                     total_electrical_distance=total_electrical_distance+distance
+                else:
+                    total_hybrid_distance = total_hybrid_distance + distance
+                
             
             total_electrical_distance=round(total_electrical_distance,2)
             total_hybrid_distance=round(total_hybrid_distance,2)
-            #self.print("update domoticz total_electrical_distance "+str(total_electrical_distance)+" km ")
             # Generate URL
             if self.configuration["domoticz_idx_electric_odometer"]:
                 url_args = {
@@ -1586,10 +1698,11 @@ if __name__ == "__main__":
         if domoticzserver.force_update == True:
             #force vehicule update and redo
             o.print("force update is true", st="WW") 
-            psaccserver.force_vehicle_update()
-            time.sleep(90) #wait 90 sec for update of the server
-            get_vehicleinfo_json = psaccserver.get_vehicleinfo(fromcache=False)
-            domoticzserver.update_devices(vehicleinfo_json)
+            if psaccserver.force_vehicle_update():
+                o.print("waiting for 90 seconds", st="WW") 
+                time.sleep(90) #wait 90 sec for update of the server
+                get_vehicleinfo_json = psaccserver.get_vehicleinfo(fromcache=False)
+                domoticzserver.update_devices(vehicleinfo_json)
     
     except Exception as exc:
         exit_on_error(psaccserver, domoticzserver, str(exc), debug=args.debug)
