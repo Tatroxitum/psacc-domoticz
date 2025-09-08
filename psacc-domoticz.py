@@ -1415,26 +1415,45 @@ class DomoticzInjector:
                 if json_inner_array["type"] == "Electric" and self.configuration["domoticz_idx_charging_status"]:
                     #Update charging state if defined
                     charging_state = str(json_inner_array["charging"]["status"])
+                    
+                    #Get current domoticz status
+                    # Generate URL
+                    url_args = {
+                        "type": "command",
+                        "param": "getdevices",
+                        "rid": self.configuration["domoticz_idx_charging_status"],
+                    }
+                        
+                    # Get Current
+                    url_current = "/json.htm?" + urlencode(url_args)
+                    if url_current:
+                        domoticz_charging_status_old = self.open_url(url_current)
+                        if domoticz_charging_status_old:
+                            self.print("get domoticz device charging status : "+str(domoticz_charging_status_old["result"][0]["Status"]),st="ok")
+                        else:
+                            self.print("get domoticz device charging status : "+str(domoticz_charging_status_old["result"][0]["Status"]),st="EE")
+                    
                     current_charging_status = "Off"
                     if charging_state == "InProgress":
                         current_charging_status = "On"
                         self.force_update = True
-                        
-                    # Generate URL
-                    url_args = {
-                        "type": "command",
-                        "param": "switchlight",
-                        "idx": self.configuration["domoticz_idx_charging_status"],
-                        "switchcmd":str(current_charging_status),
-                    }
-                        
-                    # Update Current
-                    url_current = "/json.htm?" + urlencode(url_args)
-                    if url_current:
-                        if self.open_url(url_current):
-                            self.print("update domoticz device charging status : "+str(current_charging_status),st="ok")
-                        else:
-                            self.print("update domoticz device charging status : "+str(current_charging_status),st="EE")
+                    
+                    if domoticz_charging_status_old["result"][0]["Status"] != current_charging_status:
+                        # Generate URL
+                        url_args = {
+                            "type": "command",
+                            "param": "switchlight",
+                            "idx": self.configuration["domoticz_idx_charging_status"],
+                            "switchcmd":str(current_charging_status),
+                        }
+                            
+                        # Update Current
+                        url_current = "/json.htm?" + urlencode(url_args)
+                        if url_current:
+                            if self.open_url(url_current):
+                                self.print("update domoticz device charging status : "+str(current_charging_status),st="ok")
+                            else:
+                                self.print("update domoticz device charging status : "+str(current_charging_status),st="EE")
         
         #Udpate date and verification of force update if charging
         if self.__debug:
