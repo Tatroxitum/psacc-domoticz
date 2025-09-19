@@ -181,6 +181,7 @@ class PSACCCrawler:
             "domoticz_idx_air_temperature": None,
             "domoticz_idx_update_date": None,
             "domoticz_idx_charging_status": None,
+            "domoticz_idx_charging_consumption": None,
             "domoticz_login": None,
             "domoticz_password": None,
             "timeout": "30",
@@ -189,6 +190,7 @@ class PSACCCrawler:
         # Intialisation des variables contenant les données de psacc
         self.vehicleinfo = None
         self.vehicletrips = None
+        self.vehiclechargesessions = None
 
         self.print("Start loading psacc-domoticz configuration")
         try:
@@ -278,6 +280,27 @@ class PSACCCrawler:
             self.print(st="EE")
         
         return False
+        
+    def get_vehiclechargesessions(self):
+        if self.__debug:
+            self.print("get vehicle charge sessions data from psacc", end="")
+            self.print(st="")
+        myurl = self.configuration["psacc_server"]+"/vehicles/chargings"
+        req = requests.get(myurl) 
+        if self.__debug:
+            print(u'  '.join((u'GET-> ',myurl,' : ',str(req.status_code))).encode('utf-8'))
+
+        if req.status_code==200 : # Réponse HTTP 200 : OK
+            self.vehiclechargesessions = req.json()
+            if self.__debug:
+                self.print("json : " + str(req.json()), end="")
+                self.print(st="ok")
+            return self.vehiclechargesessions
+            
+        else:
+            self.print(st="EE")
+        
+        return False
 
 
     def force_vehicle_update(self):
@@ -322,6 +345,7 @@ class DomoticzInjector:
             "domoticz_idx_air_temperature": None,
             "domoticz_idx_update_date": None,
             "domoticz_idx_charging_status": None,
+            "domoticz_idx_charging_consumption": None,
             "domoticz_server": None,
             "domoticz_login": "",
             "domoticz_password": "",
@@ -1281,10 +1305,130 @@ class DomoticzInjector:
                         st="ee",
                     )
                     properly_configured = False
+                    
+        #if charging consumption defined
+        if self.configuration["domoticz_idx_charging_consumption"]:
+            response = self.open_url(
+                "/json.htm?type=command&param=getdevices&rid=" + str(self.configuration["domoticz_idx_charging_consumption"])
+            )
+
+            if not "result" in response:
+                raise RuntimeError(
+                    "device "
+                    + str(self.configuration["domoticz_idx_charging_consumption"])
+                    + " could not be found on domoticz server "
+                    + str(self.configuration["domoticz_server"])
+                )
+            else:
+                properly_configured = True
+                dev_AddjValue = response["result"][0]["AddjValue"]
+                dev_AddjValue2 = response["result"][0]["AddjValue2"]
+                dev_SubType = response["result"][0]["SubType"]
+                dev_Type = response["result"][0]["Type"]
+                dev_SwitchTypeVal = response["result"][0]["SwitchTypeVal"]
+                dev_Name = response["result"][0]["Name"]
+
+                if self.__debug:
+                    self.print(st="ok")
+
+                # Retrieve Device Name
+                if self.__debug:
+                    self.print(
+                        '    Device Name            : "'
+                        + dev_Name
+                        + '" (idx='
+                        + self.configuration["domoticz_idx_charging_consumption"]
+                        + ")",
+                        end="",
+                    )  
+                    self.print(st="ok")
+
+                # Checking Device Type
+                if self.__debug:
+                    self.print(
+                        '    Device Type            : "' + dev_Type + '"', end=""
+                    )  
+                if dev_Type == "RFXMeter":
+                    if self.__debug:
+                        self.print(st="ok")
+                else:
+                    self.print(
+                        'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Counter"',
+                        st="EE",
+                    )
+                    properly_configured = False
+
+                # Checking device subtype
+                if self.__debug:
+                    self.print(
+                        '    Device SubType         : "' + dev_SubType + '"', end=""
+                    )  
+                if dev_SubType == "RFXMeter counter":
+                    if self.__debug:
+                        self.print(st="ok")
+                else:
+                    self.print(
+                        'wrong sensor type. Go to Domoticz/Hardware - Create a virtual-sensor type "Counter"',
+                        st="ee",
+                    )
+                    properly_configured = False
+                    
+                # Checking for SwitchType
+                if self.__debug:
+                    self.print(
+                        '    Device SwitchType      : "' + str(dev_SwitchTypeVal) + '"',
+                        end="",
+                    )  
+                if dev_SwitchTypeVal == 0:
+                    if self.__debug:
+                        self.print(st="ok")
+                else:
+                    self.print(
+                        "wrong switch type. Go to Domoticz - Select your counter - click edit - change type to \"Energy\"",
+                        st="ee",
+                    )
+                    properly_configured = False
+
+                # Checking for Counter Divider
+                if self.__debug:
+                    self.print(
+                        '    Device Counter Divided : "' + str(dev_AddjValue2) + '"',
+                        end="",
+                    )  
+                if dev_AddjValue2 != 0:
+                    if self.__debug:
+                        self.print(st="ok")
+                else:
+                    self.print(
+                        'wrong counter divided. Go to Domoticz - Select your counter - click edit - set "Counter Divided" to the charger efficiency',
+                        st="ee",
+                    )
+                    properly_configured = False
+
+                # Checking Meter Offset
+                if self.__debug:
+                    self.print(
+                        '    Device Meter Offset    : "' + str(dev_AddjValue) + '"',
+                        end="",
+                    )  
+                if dev_AddjValue == 0:
+                    if self.__debug:
+                        self.print(st="ok")
+                else:
+                    self.print(
+                        'wrong value for meter offset. Go to Domoticz - Select your counter - click edit - set "Meter Offset" to 0',
+                        st="ee",
+                    )
+                    properly_configured = False
+
+                if properly_configured is False:
+                    raise RuntimeError(
+                        "Set your device correctly and run the script again"
+                    )
 
 
     #Update all domoticz devices defined in config.json
-    def update_devices(self, vehicleinfo_json_file, vehicletrips_jsonf_file=None):
+    def update_devices(self, vehicleinfo_json_file, vehicletrips_jsonf_file=None, vehiclechargesessions_json=None):
         odometer_update_date = ""
         energy_fuel_update_date = ""
         energy_battery_update_date = ""
@@ -1567,6 +1711,52 @@ class DomoticzInjector:
                         self.print("update domoticz hybrid mode odometer "+str(total_hybrid_distance)+" km",st="ok")
                     else:
                         self.print("update domoticz hybrid mode odometer "+str(total_hybrid_distance)+" km",st="EE")
+               
+                        
+        #Update vehicle charging sessions
+        if (vehiclechargesessions_json):
+            charging_kw = 0.0    
+            total_hybrid_distance = 0.0    
+            
+            for json_inner_array in vehiclechargesessions_json:
+                #consumption_fuel_km = float(json_inner_array["consumption_fuel_km"])
+                #consumption_electric_km = float(json_inner_array["consumption_km"])
+                #distance = float(json_inner_array["distance"])
+                    
+                if (json_inner_array["stop_at"]):
+                    date_string_start=datetime.strptime(json_inner_array["start_at"], '%a, %d %b %Y %H:%M:%S %Z')
+                    update_dateLocal_start=date_string_start.astimezone(datetime.now().astimezone().tzinfo) #apply local timezone
+                    date_string_stop=datetime.strptime(json_inner_array["stop_at"], '%a, %d %b %Y %H:%M:%S %Z')
+                    update_dateLocal_stop=date_string_stop.astimezone(datetime.now().astimezone().tzinfo) #apply local timezone
+                    charging_kw=charging_kw+json_inner_array["kw"]
+                    #charging_price=json_inner_array["price"]
+                    self.print("update domoticz vehiclechargesessions_json "+str(charging_kw)+"kwh ",st="ok")
+                
+                
+                if(consumption_fuel_km==0):
+                    total_electrical_distance=total_electrical_distance+distance
+                else:
+                    total_hybrid_distance = total_hybrid_distance + distance
+                
+            
+            total_electrical_distance=round(total_electrical_distance,2)
+            total_hybrid_distance=round(total_hybrid_distance,2)
+            # Generate URL
+            if self.configuration["domoticz_idx_electric_odometer"]:
+                url_args = {
+                    "type": "command",
+                    "param": "udevice",
+                    "idx": self.configuration["domoticz_idx_charging_consumption"],
+                    "nValue":"0",
+                    "svalue": str(charging_kw),
+                }
+                # Update Current value
+                url_current = "/json.htm?" + urlencode(url_args)
+                if url_current:
+                    if self.open_url(url_current):
+                        self.print("update domoticz charging consumption "+str(charging_kw)+" kwh",st="ok")
+                    else:
+                        self.print("update domoticz charging consumption "+str(charging_kw)+" kwh",st="EE")
                          
 
 def exit_on_error(psacc_obj=None, domoticz=None, string="", debug=False):
@@ -1708,12 +1898,13 @@ if __name__ == "__main__":
     try:
         vehicleinfo_json = psaccserver.get_vehicleinfo()
         vehicletrips_json = psaccserver.get_vehicletrips()
+        vehiclechargesessions_json = psaccserver.get_vehiclechargesessions()
     except Exception as exc:
         exit_on_error(psaccserver, domoticzserver, str(exc), debug=args.debug)
     
     # Update domoticz
     try:
-        domoticzserver.update_devices(vehicleinfo_json,vehicletrips_json)
+        domoticzserver.update_devices(vehicleinfo_json,vehicletrips_json,vehiclechargesessions_json)
         if domoticzserver.force_update == True:
             #force vehicule update and redo
             o.print("force update is true", st="WW") 

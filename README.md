@@ -44,6 +44,9 @@ Installation of psacc-domoticz :
   							"Text"
       "domoticz_idx_charging_status": button indicating the charging state. If you click on it no action will be done and it will refresh itself after the script is executed
   							"Switch", type "on/off", "X10"
+      "domoticz_idx_charging_consumption": Charging consumption in kw/h
+							"Counter", once created set it to "custom", "Energy", add a divider for example 0.8942 (same as in psacc server). Thus you will have the
+							losts in the charging and if you have parameter the cost of energy in domoticz you will have an estimation of the price of the charging sessions
   	
 	Note : if psacc server is set in miles you can replace the above "km" axis by "miles" ; its only a string without impact.
 	

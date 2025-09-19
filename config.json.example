@@ -13,5 +13,6 @@
     "domoticz_idx_fuel_autonomy": "",
     "domoticz_idx_air_temperature": "",
     "domoticz_idx_update_date": "",
-    "domoticz_idx_charging_status": ""
+    "domoticz_idx_charging_status": "",
+    "domoticz_idx_charging_consumption": ""
 }
